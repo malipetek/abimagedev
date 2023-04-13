@@ -1,0 +1,37 @@
+.sortable-card > * {
+  height: 100%;
+}
+.image {
+  max-width: 100%;
+}
+.DropZone.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  border: 1px dashed #919eab;
+  border-radius: 4px;
+  background-color: #f5f7f9;
+  color: #919eab;
+  font-size: 1.2rem;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+}
+.DropZone.empty:hover {
+  background-color: #e8edf1;
+}
+
+.DropZone.empty::after {
+  content: "Drop here";
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #919eab;
+  /* center */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
