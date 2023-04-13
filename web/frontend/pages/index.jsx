@@ -60,7 +60,7 @@ function ProductList() {
   });
 
   useEffect(() => {
-    if (!isLoadingProducts) {
+    if (!isLoadingProducts && !isRefetchingProducts && data?.data) {
       console.log('data 2', data);
       const pageInfo = data.data.products.pageInfo;
       const products = data.data.products.edges.map(({ node }) => node);
