@@ -14,7 +14,6 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { useNavigate } from "react-router-dom";
 import { useParams } from 'react-router-dom';
 import { useAppQuery } from "../../hooks";
-import { arrayMoveImmutable } from "array-move";
 import "./module.css";
 
 import {
