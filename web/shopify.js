@@ -3,9 +3,6 @@ import { shopifyApp } from "@shopify/shopify-app-express";
 import { PostgreSQLSessionStorage } from "@shopify/shopify-app-session-storage-postgresql";
 import { restResources } from "@shopify/shopify-api/rest/admin/2023-01";
 
-import dotenv from "dotenv";
-dotenv.config();
-
 console.log('process.env.DATABASE_URL', process.env.DATABASE_URL);
 const DB_PATH = new URL(process.env.DATABASE_URL || "postgres://localhost:5432/shopify" );
 

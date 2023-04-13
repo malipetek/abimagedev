@@ -28,3 +28,4 @@ extensions/*/build
 web/database.sqlite
 .vscode/extensions.json
 .vscode/launch.json
+yarn.lock
