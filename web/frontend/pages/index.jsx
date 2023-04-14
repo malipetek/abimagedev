@@ -71,7 +71,7 @@ function ProductList() {
       setPageInfo(pageInfo);
       setCursor(products[products.length - 1].cursor);
     }
-  }, [isLoadingProducts]);
+  }, [isLoadingProducts, data]);
 
   const handlePagination = useCallback((_event, newPage) => {
     console.log('products set ', products);
