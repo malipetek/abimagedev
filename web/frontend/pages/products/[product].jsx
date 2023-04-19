@@ -1,8 +1,8 @@
 import React, { useEffect, useState, Fragment, useCallback, useRef } from "react";
 import {
-  LegacyCard, Page, Layout, TextContainer, Heading, DropZone, Text, Checkbox,
-  Columns,
-  AlphaStack,
+  LegacyCard, Page, Text, Checkbox,
+  HorizontalGrid,
+  VerticalStack,
   AlphaCard,
   Box,
   SkeletonBodyText,
@@ -131,10 +131,10 @@ export default function PageName() {
         hasNext: true,
       }}
     >
-      <Columns columns={{ xs: 1, md: "2fr 1fr" }} gap="4">
-        <AlphaStack gap="4">
+      <HorizontalGrid columns={{ xs: 1, md: "2fr 1fr" }} gap="4">
+        <VerticalStack gap="4">
           <AlphaCard roundedAbove="sm">
-            <AlphaStack gap="4">
+            <VerticalStack gap="4">
               <div className="DropZone">
                 <SortableList
                   items={productImgs}
@@ -232,22 +232,22 @@ export default function PageName() {
                 <SkeletonLabel maxWidth="8rem" />
                 <Box border="divider" borderRadius="base" minHeight="20rem" />
               </DndContext> */}
-            </AlphaStack>
+            </VerticalStack>
           </AlphaCard>
           <AlphaCard roundedAbove="sm">
-            <AlphaStack gap="4">
+            <VerticalStack gap="4">
               <SkeletonDisplayText size="small" />
-              <Columns columns={{ xs: 1, md: 2 }}>
+              <HorizontalGrid columns={{ xs: 1, md: 2 }}>
                 <Box border="divider" borderRadius="base" minHeight="10rem" />
                 <Box border="divider" borderRadius="base" minHeight="10rem" />
-              </Columns>
-            </AlphaStack>
+              </HorizontalGrid>
+            </VerticalStack>
           </AlphaCard>
-        </AlphaStack>
+        </VerticalStack>
 
-        <AlphaStack gap={{ xs: "4", md: "2" }}>
+        <VerticalStack gap={{ xs: "4", md: "2" }}>
           <AlphaCard roundedAbove="sm">
-            <AlphaStack gap="4">
+            <VerticalStack gap="4">
               <SkeletonDisplayText size="small" />
               <Box border="divider" borderRadius="base" minHeight="2rem" />
               <Box>
@@ -258,20 +258,20 @@ export default function PageName() {
               <SkeletonLabel />
               <Divider borderStyle="divider" />
               <SkeletonBodyText />
-            </AlphaStack>
+            </VerticalStack>
           </AlphaCard>
           <AlphaCard roundedAbove="sm">
-            <AlphaStack gap="4">
+            <VerticalStack gap="4">
               <SkeletonLabel />
               <Box border="divider" borderRadius="base" minHeight="2rem" />
               <SkeletonLabel maxWidth="4rem" />
               <Box border="divider" borderRadius="base" minHeight="2rem" />
               <SkeletonLabel />
               <SkeletonBodyText />
-            </AlphaStack>
+            </VerticalStack>
           </AlphaCard>
-        </AlphaStack>
-      </Columns>
+        </VerticalStack>
+      </HorizontalGrid>
     </Page>
   );
 }
