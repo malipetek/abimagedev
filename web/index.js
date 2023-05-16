@@ -211,7 +211,7 @@ app.get("/test", async (_req, res) => {
 app.use(shopify.cspHeaders());
 app.use(serveStatic(STATIC_PATH, { index: false }));
 
-app.use('/public', express.static(join(__dirname, '..', 'public')));
+app.use('/public', express.static(join(process.cwd(), 'public')));
 
 app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
   return res
