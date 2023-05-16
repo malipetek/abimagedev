@@ -1,0 +1,1 @@
+export { ScriptSetting } from './ScriptSetting';

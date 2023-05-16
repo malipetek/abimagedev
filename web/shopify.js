@@ -1,7 +1,9 @@
 import { BillingInterval, LATEST_API_VERSION } from "@shopify/shopify-api";
 import { shopifyApp } from "@shopify/shopify-app-express";
-import { PostgreSQLSessionStorage } from "@shopify/shopify-app-session-storage-postgresql";
+import { DirectusAttachedStorage } from "./directus_storage.js";
 import { restResources } from "@shopify/shopify-api/rest/admin/2023-01";
+import dotenv from "dotenv";
+dotenv.config();
 
 console.log('process.env.DATABASE_URL', process.env.DATABASE_URL);
 const DB_PATH = new URL(process.env.DATABASE_URL || "postgres://localhost:5432/shopify" );
@@ -32,7 +34,7 @@ const shopify = shopifyApp({
   },
   useOnlineTokens: true,
   // This should be replaced with your preferred storage strategy
-  sessionStorage: new PostgreSQLSessionStorage(DB_PATH),
+  sessionStorage: new DirectusAttachedStorage(DB_PATH),
 });
 
 export default shopify;

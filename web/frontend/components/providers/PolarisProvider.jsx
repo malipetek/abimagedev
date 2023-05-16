@@ -1,14 +1,18 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { AppProvider } from "@shopify/polaris";
 import { useNavigate } from "@shopify/app-bridge-react";
 import translations from "@shopify/polaris/locales/en.json";
 import "@shopify/polaris/build/esm/styles.css";
 
-function AppBridgeLink({ url, children, external, ...rest }) {
+function AppBridgeLink({ url, children, external, onClick, ...rest }) {
   const navigate = useNavigate();
   const handleClick = useCallback(() => {
     navigate(url);
   }, [url]);
+
+  useEffect(() => {
+    console.log("using AppBridgeLink");
+  });
 
   const IS_EXTERNAL_LINK_REGEX = /^(?:[a-z][a-z\d+.-]*:|\/\/)/;
 
@@ -21,7 +25,7 @@ function AppBridgeLink({ url, children, external, ...rest }) {
   }
 
   return (
-    <a onClick={handleClick} {...rest}>
+    <a className="polarislink" onClick={handleClick} {...rest}>
       {children}
     </a>
   );

@@ -3,13 +3,19 @@ import { join } from "path";
 import { readFileSync } from "fs";
 import express from "express";
 import serveStatic from "serve-static";
+import dotenv from "dotenv";
+dotenv.config();
 
+import events from './events.js';
 import shopify from "./shopify.js";
+import directus from "./directus.js";
+
 import productCreator from "./product-creator.js";
 import GDPRWebhookHandlers from "./gdpr.js";
+import WebHooks from "./webhooks.js";
 
 const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT, 10);
- 
+
 const STATIC_PATH =
   process.env.NODE_ENV === "production"
     ? `${process.cwd()}/frontend/dist`
@@ -22,11 +28,17 @@ app.get(shopify.config.auth.path, shopify.auth.begin());
 app.get(
   shopify.config.auth.callbackPath,
   shopify.auth.callback(),
+  events.installed,
   shopify.redirectToShopifyOrAppRoot()
 );
 app.post(
   shopify.config.webhooks.path,
-  shopify.processWebhooks({ webhookHandlers: GDPRWebhookHandlers })
+  shopify.processWebhooks({
+    webhookHandlers: {
+      ...GDPRWebhookHandlers,
+      ...WebHooks
+    }  
+  })
 );
 
 // If you are adding routes outside of the /api path, remember to
@@ -70,32 +82,136 @@ app.post('/api/graphql/proxy', async (req, res) => {
   }
 });
 
-app.get("/test", async (_req, res) => { 
-  res.status(200).send('test');
+app.post('/track', async (req, res) => {
+  const { session, event, properties } = req.body;
+  const { shop, accessToken } = session;
+  const { shopify } = shopify.config;
+  const { domain } = shopify;
+
+  directus.items('events').create({
+    event,
+    properties,
+    shop,
+    domain,
+  })
 });
-app.get("/api/products/count", async (_req, res) => {
-  const countData = await shopify.api.rest.Product.count({
-    session: res.locals.shopify.session,
+  
+app.get('/api/script-status', async (req, res) => {
+  const { enable, disable, toggle } = req.query;
+ 
+  const sessionId = await shopify.api.session.getCurrentId({
+    isOnline: shopify.config.useOnlineTokens,
+    rawRequest: req,
+    rawResponse: res,
   });
-  res.status(200).send(countData);
+  // use sessionId to retrieve session from app's session storage
+  // getSessionFromStorage() must be provided by application
+  if (!sessionId) {
+    res.status(401).send({ error: 'Unauthorized' });
+    return;
+  }
+  const session = await shopify.config.sessionStorage.loadSession(sessionId);
+
+  if (!session) {
+    res.status(401).send({ error: 'Unauthorized' });
+    return;
+  }
+
+/**********************************
+ * GET CURRENT DATA FROM DIRECTUS *
+ **********************************/
+  // @ts-ignore
+  let { data: [ { config: [ { id: configId, config } ] } ] } = await directus.items('shopify_shops').readByQuery({
+    filter: {
+      myshopify_domain: {
+        _eq: session.shop,
+      }
+    },
+    fields: [
+      'myshopify_domain',
+      'config.*'
+    ]
+  });
+
+/**************************
+ * DEFINE RESAVE FUNCTION *
+ **************************/
+  
+  // check if changed
+  const save = () => directus.items('abimage_shop_config').updateOne(configId, {
+    config,
+  });
+  
+/****************
+ * HANDLE LOGIC *
+ ****************/
+  if (enable !== undefined && config.script_enabled !== false) {
+    config = {
+      ...config,
+      script_enabled: true,
+    }
+    await save();
+  }
+  else if (disable !== undefined && config.script_enabled !== true) {
+      config = {
+      ...config,
+      script_enabled: false,
+      }
+    await save();
+  }
+  else if (toggle !== undefined && config.script_enabled !== null) {
+    config = {
+      ...config,
+      script_enabled: !config.script_enabled,
+    }
+    await save();
+  }
+
+  return res.send({ config });
 });
 
-app.get("/api/products/create", async (_req, res) => {
-  let status = 200;
-  let error = null;
+app.post('/api/session', async (req, res) => {
+
+  const sessionId = await shopify.api.session.getCurrentId({
+    isOnline: shopify.config.useOnlineTokens,
+    rawRequest: req,
+    rawResponse: res,
+  });
+  // use sessionId to retrieve session from app's session storage
+  // getSessionFromStorage() must be provided by application
+  if (!sessionId) {
+    res.status(401).send({ error: 'Unauthorized' });
+    return;
+  }
+  const session = await shopify.config.sessionStorage.loadSession(sessionId);
+
+  if (!session) {
+    res.status(401).send({ error: 'Unauthorized' });
+    return;
+  }
 
   try {
-    await productCreator(res.locals.shopify.session);
-  } catch (e) {
-    console.log(`Failed to process products/create: ${e.message}`);
-    status = 500;
-    error = e.message;
+    const response = await shopify.api.clients.graphqlProxy({
+      session,
+      rawBody: req.body,
+    });
+  
+    res.send(response.body);
   }
-  res.status(status).send({ success: status === 200, error });
+  catch (e) {
+    console.log('error', e);
+    res.status(500).send({ error: e.message });
+  }
+});
+
+app.get("/test", async (_req, res) => { 
+  res.status(200).send('test');
 });
 
 app.use(shopify.cspHeaders());
 app.use(serveStatic(STATIC_PATH, { index: false }));
+
+app.use('/public', express.static(join(__dirname, '..', 'public')));
 
 app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
   return res
@@ -104,4 +220,7 @@ app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
     .send(readFileSync(join(STATIC_PATH, "index.html")));
 });
 
-app.listen(PORT);
+app.listen(PORT, async () => {
+  console.log(`Server listening on port ${PORT}`);
+  await directus.auth.static(process.env.DIRECTUS_TOKEN);
+});

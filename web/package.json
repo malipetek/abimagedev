@@ -12,11 +12,13 @@
     "node": ">=14.13.1"
   },
   "dependencies": {
+    "@directus/sdk": "^10.3.3",
     "@shopify/shopify-app-express": "^1.1.0",
     "@shopify/shopify-app-session-storage-postgresql": "^1.1.1",
     "@shopify/shopify-app-session-storage-sqlite": "^1.0.0",
     "compression": "^1.7.4",
     "cross-env": "^7.0.3",
+    "dotenv": "^16.0.3",
     "graphql-hooks": "^6.2.2",
     "serve-static": "^1.14.1"
   },
