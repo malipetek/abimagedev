@@ -20,38 +20,50 @@ analytics.page();
 
 const visibleImages = [];
 
-const images = document.querySelectorAll('img');
-const options = {
-  root: null,
-  rootMargin: '0px',
-  threshold: 0.5
-};
+function initImageObservation() {
+  const images = document.querySelectorAll('img');
+  const options = {
+    root: null,
+    rootMargin: '0px',
+    threshold: 0.5
+  };
 
-const observer = new IntersectionObserver((entries, observer) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      analytics.track('imageView', {
-        image: entry.target.src,
-        width: entry.target.width,
-        height: entry.target.height,
-        screen_width: screen.availWidth,
-        screen_height: screen.availHeight
-      });
-      visibleImages.push(entry.target.src);
-    } else {
-      const wasVisibleIndex = visibleImages.indexOf(entry.target.src);
-      if (wasVisibleIndex !== -1) {
-        visibleImages.splice(wasVisibleIndex, 1);
-        analytics.track('imageHide', {
+  const observer = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        analytics.track('imageView', {
           image: entry.target.src,
+          width: entry.target.width,
+          height: entry.target.height,
+          screen_width: screen.availWidth,
+          screen_height: screen.availHeight
         });
+        visibleImages.push(entry.target.src);
+      } else {
+        const wasVisibleIndex = visibleImages.indexOf(entry.target.src);
+        if (wasVisibleIndex !== -1) {
+          visibleImages.splice(wasVisibleIndex, 1);
+          analytics.track('imageHide', {
+            image: entry.target.src,
+          });
+        }
       }
-    }
-  });
-}, options);
+    });
+  }, options);
 
-images.forEach(image => {
-  observer.observe(image);
+  return {
+    images,
+    observer,
+    destroy: () => {
+      observer.disconnect();
+    }
+  }
+}
+
+let observation = initImageObservation();
+
+observation.images.forEach(image => {
+  observation.observer.observe(image);
 });
 
 setInterval(() => {
@@ -60,4 +72,6 @@ setInterval(() => {
       images: visibleImages,
     });
   }
+  observation.destroy();
+  observation = initImageObservation();
 }, 10000);
