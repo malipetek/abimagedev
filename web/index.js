@@ -212,6 +212,10 @@ app.use(shopify.cspHeaders());
 app.use(serveStatic(STATIC_PATH, { index: false }));
 
 app.use('/public', express.static(join(process.cwd(), 'public')));
+app.post('/track', async (req, res) => {
+  const { session, event, properties } = req.body;
+  res.send({ session, event, properties });
+});
 
 app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
   return res
