@@ -84,12 +84,13 @@ app.post('/api/graphql/proxy', async (req, res) => {
 
 app.post('/track', async (req, res) => {
   const { session, event, properties } = req.body;
-
+  // cors allow
+  res.set('Access-Control-Allow-Origin', '*');
   // directus.items('events').create({
   //   event,
   //   properties,
   // })
-res.send('ok');
+  res.send('ok');
 });
   
 app.get('/api/script-status', async (req, res) => {
