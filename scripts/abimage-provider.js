@@ -3,12 +3,8 @@ export default function providerPluginExample(userConfig) {
   const customAnalyticsEndpoint = 'abimagedev-production.up.railway.app/api/track'
 
   return {
-    /* All plugins require a name */
     name: 'abimage-provider',
-    /* Everything else below this is optional depending on your plugin requirements */
     config: {
-      whatEver: userConfig.whatEver,
-      elseYouNeed: userConfig.elseYouNeed
     },
     initialize: ({ config }) => {
       window.abimageLoaded = true

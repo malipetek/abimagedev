@@ -9,8 +9,8 @@ export default {
     });
     // save shop data to directus
     try {
-  
-      const response = await shopify.webhooks.register({
+
+      const response = await shopify.api.webhooks.register({
         session: res.locals.shopify.session,
       });
   
