@@ -84,16 +84,12 @@ app.post('/api/graphql/proxy', async (req, res) => {
 
 app.post('/track', async (req, res) => {
   const { session, event, properties } = req.body;
-  const { shop, accessToken } = session;
-  const { shopify } = shopify.config;
-  const { domain } = shopify;
 
-  directus.items('events').create({
-    event,
-    properties,
-    shop,
-    domain,
-  })
+  // directus.items('events').create({
+  //   event,
+  //   properties,
+  // })
+res.send('ok');
 });
   
 app.get('/api/script-status', async (req, res) => {
@@ -212,9 +208,6 @@ app.use(shopify.cspHeaders());
 app.use(serveStatic(STATIC_PATH, { index: false }));
 
 app.use('/public', express.static(join(process.cwd(), 'public')));
-app.post('/track', async (req, res) => {
-  res.send('ok');
-});
 
 app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
   return res
