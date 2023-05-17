@@ -1,6 +1,6 @@
 export default function providerPluginExample(userConfig) {
   // return object for analytics to use
-  const customAnalyticsEndpoint = 'abimagedev-production.up.railway.app/track'
+  const customAnalyticsEndpoint = 'https://abimagedev-production.up.railway.app/track'
 
   return {
     name: 'abimage-provider',
