@@ -25,7 +25,9 @@ const app = express();
 
 // debug
 app.all('*', (req, res, next) => {
-  console.log('request url: ', req.url, req.body);
+  console.log('request url: ', req.url);
+  console.log('request body: ', req.body);
+  console.log('request method: ', req.method);
   next();
 });
 app.use('/scripts', express.static(join(process.cwd(), 'scripts')));
@@ -98,8 +100,9 @@ function getImageIdentifier(uri) {
   }
   return image_identifier
 }
-app.all('/track', async (req, res) => {
+app.post('/track', async (req, res) => {
   const { date, event, properties, session } = req.body;
+  res.set('Access-Control-Allow-Origin', '*');
 
   try {
     if (event === 'imageView') {
@@ -114,7 +117,7 @@ app.all('/track', async (req, res) => {
       console.log('create result ', result)
     }
 
-    if (event == 'imageTick') {
+    else if (event == 'imageTick') {
       await Promise.all((Array.isArray(properties.images) ? properties.images : []).map((image) => {
         return directus.items('events').createOne({
           shop: req.headers.origin.split('//').pop(),
@@ -126,10 +129,19 @@ app.all('/track', async (req, res) => {
         });
       }));
     }
+
+    else {
+      await directus.items('events').createOne({
+        shop: req.headers.origin.split('//').pop(),
+        date,
+        event_type: event,
+        session,
+        event_payload: properties,
+      });
+    } 
   } catch (e) {
     console.error(e);
   }
-  res.set('Access-Control-Allow-Origin', '*');
   
   res.status(200).send();
 });

@@ -31,6 +31,7 @@ export default function providerPluginExample(userConfig) {
         },
         body: JSON.stringify({
           date: meta.ts,
+          page: meta.page,
           session: userId,
           event,
           properties
