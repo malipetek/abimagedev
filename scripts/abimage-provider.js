@@ -20,12 +20,12 @@ export default function providerPluginExample(userConfig) {
       })
     },
     track: ({ payload }) => {
-      const { meta, session, event, properties } = payload;
+      const { meta, userId, event, properties } = payload;
       fetch(customAnalyticsEndpoint, {
         method: 'POST',
         body: JSON.stringify({
           date: meta.ts,
-          session,
+          session: userId,
           event,
           properties
         })

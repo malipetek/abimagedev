@@ -4,15 +4,15 @@ import abimageProvider from './abimage-provider';
 
 const analytics = Analytics({
   app: 'abimage',
-  version: 1,
+  version: '1.0.1',
   plugins: [
     abimageProvider()
   ]
 });
 
 const { storage } = analytics;
-const session = storage.getItem('session_idetifier') || uuid();
-storage.setItem('session_identifier', session);
+const session = storage.getItem('__abmg_ssi') || uuid();
+storage.setItem('__abmg_ssi', session);
 
 analytics.identify(session);
 
@@ -54,13 +54,14 @@ images.forEach(image => {
   observer.observe(image);
 });
 
-setInterval(() => {
+function keepTracking() {
+  let int;
+  let start = () => setInterval(() => {
   if (visibleImages.length > 0) {
     analytics.track('imageViewTick', {
       images: visibleImages,
     });
   }
-
   // check if document has new images start observing new ones and stop observing old ones
   const newImages = [...document.images].filter(image => !images.includes(image));
   newImages.forEach(image => {
@@ -79,4 +80,25 @@ setInterval(() => {
       visibleImages.splice(visibleImages.indexOf(image), 1);
     }
   });
-}, 10000);
+  }, 10000);
+
+  return {
+    stop: () => {
+      clearInterval(int);
+    },
+    start: () => {
+      int = start();
+    }
+  }
+}
+
+keepTracking().start();
+
+// stop tracking when tabs loses focus
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    keepTracking().stop();
+  } else {
+    keepTracking().start();
+  }
+});

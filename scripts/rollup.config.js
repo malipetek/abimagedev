@@ -10,7 +10,7 @@ export default {
     terser()
   ],
 	output: {
-		file: '../web/public/abimage.js',
+		file: '../web/scripts/abimage.js',
 		format: 'cjs'
 	}
 };

@@ -23,6 +23,13 @@ const STATIC_PATH =
 
 const app = express();
 
+// debug
+app.all('*', (req, res, next) => {
+  console.log('asdsad ==> ', req.url);
+  next();
+});
+app.use('/scripts', express.static(join(process.cwd(), 'scripts')));
+
 // Set up Shopify authentication and webhook handling
 app.get(shopify.config.auth.path, shopify.auth.begin());
 app.get(
@@ -81,16 +88,50 @@ app.post('/api/graphql/proxy', async (req, res) => {
     res.status(500).send({ error: e.message });
   }
 });
+function getImageIdentifier(u) {
+  let image_identifier = null;
+  try {
+    if (event === 'imageView') {
+      const u = new URL();
+      image_identifier = u.pathname.split('/').pop();
+    }
+  } catch (e) {
+    image_identifier = 'unknown';
+  }
+}
+app.all('/track', async (req, res) => {
+  const { date, event, properties, session } = req.body;
 
-app.post('/track', async (req, res) => {
-  const { session, event, properties } = req.body;
-  // cors allow
+  try {
+    if (event === 'imageView') {
+      await directus.items('events').createOne({
+        shop: req.headers.origin.split('//').pop(),
+        date,
+        event_type: event,
+        session,
+        image_identifier: getImageIdentifier(properties.image),
+        event_payload: properties,
+      })
+    }
+
+    if (event == 'imageTick') {
+      await Promise.all((Array.isArray(properties.images) ? properties.images : []).map((image) => {
+        return directus.items('events').createOne({
+          shop: req.headers.origin.split('//').pop(),
+          date,
+          event_type: event,
+          session,
+          image_identifier: getImageIdentifier(image),
+          event_payload: properties,
+        });
+      }));
+    }
+  } catch (e) {
+    console.error(e);
+  }
   res.set('Access-Control-Allow-Origin', '*');
-  // directus.items('events').create({
-  //   event,
-  //   properties,
-  // })
-  res.send('ok');
+  
+  res.status(200).send();
 });
   
 app.get('/api/script-status', async (req, res) => {
@@ -207,8 +248,6 @@ app.get("/test", async (_req, res) => {
 
 app.use(shopify.cspHeaders());
 app.use(serveStatic(STATIC_PATH, { index: false }));
-
-app.use('/public', express.static(join(process.cwd(), 'public')));
 
 app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
   return res
