@@ -100,6 +100,14 @@ function getImageIdentifier(uri) {
   }
   return image_identifier
 }
+
+app.options('/track', (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Headers', '*');
+  res.set('Access-Control-Allow-Methods', '*');
+  res.send();
+});
+
 app.post('/track', async (req, res) => {
   const { date, event, properties, session } = req.body;
   res.set('Access-Control-Allow-Origin', '*');
