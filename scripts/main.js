@@ -4,7 +4,7 @@ import abimageProvider from './abimage-provider';
 
 const analytics = Analytics({
   app: 'abimage',
-  version: '1.0.1',
+  version: '1.0.2',
   plugins: [
     abimageProvider()
   ]
@@ -92,13 +92,13 @@ function keepTracking() {
   }
 }
 
-keepTracking().start();
-
+const trackKeeper = keepTracking();
+trackKeeper.start();
 // stop tracking when tabs loses focus
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    keepTracking().stop();
+    trackKeeper.stop();
   } else {
-    keepTracking().start();
+    trackKeeper.start();
   }
 });
