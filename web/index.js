@@ -25,7 +25,7 @@ const app = express();
 
 // debug
 app.all('*', (req, res, next) => {
-  console.log('asdsad ==> ', req.url);
+  console.log('request url: ', req.url, req.body);
   next();
 });
 app.use('/scripts', express.static(join(process.cwd(), 'scripts')));
@@ -88,23 +88,22 @@ app.post('/api/graphql/proxy', async (req, res) => {
     res.status(500).send({ error: e.message });
   }
 });
-function getImageIdentifier(u) {
+function getImageIdentifier(uri) {
   let image_identifier = null;
   try {
-    if (event === 'imageView') {
-      const u = new URL();
-      image_identifier = u.pathname.split('/').pop();
-    }
+    const u = new URL(uri);
+    image_identifier = u.pathname.split('/').pop();
   } catch (e) {
     image_identifier = 'unknown';
   }
+  return image_identifier
 }
 app.all('/track', async (req, res) => {
   const { date, event, properties, session } = req.body;
 
   try {
     if (event === 'imageView') {
-      await directus.items('events').createOne({
+      const result = await directus.items('events').createOne({
         shop: req.headers.origin.split('//').pop(),
         date,
         event_type: event,
@@ -112,6 +111,7 @@ app.all('/track', async (req, res) => {
         image_identifier: getImageIdentifier(properties.image),
         event_payload: properties,
       })
+      console.log('create result ', result)
     }
 
     if (event == 'imageTick') {

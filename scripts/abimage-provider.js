@@ -13,6 +13,9 @@ export default function providerPluginExample(userConfig) {
       const { meta, session } = payload;
       fetch(customAnalyticsEndpoint, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           date: meta.ts,
           session,
@@ -23,6 +26,9 @@ export default function providerPluginExample(userConfig) {
       const { meta, userId, event, properties } = payload;
       fetch(customAnalyticsEndpoint, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           date: meta.ts,
           session: userId,
