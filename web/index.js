@@ -125,7 +125,7 @@ app.post('/track', async (req, res) => {
       console.log('create result ', result)
     }
 
-    else if (event == 'imageTick') {
+    else if (event == 'imageViewTick') {
       await Promise.all((Array.isArray(properties.images) ? properties.images : []).map((image) => {
         return directus.items('events').createOne({
           shop: req.headers.origin.split('//').pop(),

@@ -4,7 +4,7 @@ import abimageProvider from './abimage-provider';
 
 const analytics = Analytics({
   app: 'abimage',
-  version: '1.0.2',
+  version: '1.0.3',
   plugins: [
     abimageProvider()
   ]
@@ -16,43 +16,55 @@ storage.setItem('__abmg_ssi', session);
 
 analytics.identify(session);
 
-analytics.page();
+function initialize() {
 
-const visibleImages = [];
-
-const images = [...document.images];
-const options = {
-  root: null,
-  rootMargin: '0px',
-  threshold: 0.5
-};
-
-const observer = new IntersectionObserver((entries, observer) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      analytics.track('imageView', {
-        image: entry.target.src,
-        width: entry.target.width,
-        height: entry.target.height,
-        screen_width: screen.availWidth,
-        screen_height: screen.availHeight
-      });
-      visibleImages.push(entry.target.src);
-    } else {
-      const wasVisibleIndex = visibleImages.indexOf(entry.target.src);
-      if (wasVisibleIndex !== -1) {
-        visibleImages.splice(wasVisibleIndex, 1);
-        analytics.track('imageHide', {
+  analytics.page();
+  
+  const visibleImages = [];
+  
+  const images = [...document.images];
+  const options = {
+    root: null,
+    rootMargin: '0px',
+    threshold: 0.5
+  };
+  
+  const observer = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        analytics.track('imageView', {
           image: entry.target.src,
+          width: entry.target.width,
+          height: entry.target.height,
+          screen_width: screen.availWidth,
+          screen_height: screen.availHeight
         });
+        visibleImages.push(entry.target.src);
+      } else {
+        const wasVisibleIndex = visibleImages.indexOf(entry.target.src);
+        if (wasVisibleIndex !== -1) {
+          visibleImages.splice(wasVisibleIndex, 1);
+          analytics.track('imageHide', {
+            image: entry.target.src,
+          });
+        }
       }
-    }
+    });
+  }, options);
+  
+  images.forEach(image => {
+    observer.observe(image);
   });
-}, options);
 
-images.forEach(image => {
-  observer.observe(image);
-});
+  return {
+    observer,
+    images,
+    visibleImages
+  };
+}
+
+// initialize on page load
+let { observer, images, visibleImages } = initialize();
 
 function keepTracking() {
   let int;
@@ -102,3 +114,35 @@ document.addEventListener('visibilitychange', () => {
     trackKeeper.start();
   }
 });
+
+// reinitialize when user navigates to a new page
+window.addEventListener('popstate', () => {
+  let res = initialize();
+  observer = res.observer;
+  images = res.images;
+  visibleImages = res.visibleImages;
+});
+
+// detech add to cart by detecting fetch requests to /cart/add or navigation to /cart/add
+const originalFetch = window.fetch;
+window.fetch = function () {
+  const args = arguments;
+  const url = args[0];
+  if (url === '/cart/add') {
+    analytics.track('addToCart', {
+      products: args[1].body
+    });
+  }
+  return originalFetch.apply(this, args);
+}
+
+// detect link clicks
+document.addEventListener('click', (e) => {
+  if (e.target && e.target.tagName === 'A') {
+    analytics.track('linkClick', {
+      href: e.target.href,
+      text: e.target.innerText
+    });
+  }
+});
+
