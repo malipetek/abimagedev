@@ -4,7 +4,7 @@ import abimageProvider from './abimage-provider';
 
 const analytics = Analytics({
   app: 'abimage',
-  version: '1.0.3',
+  version: '1.0.4',
   plugins: [
     abimageProvider()
   ]

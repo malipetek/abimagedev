@@ -14,11 +14,14 @@ export default function AbimageProvider(userConfig) {
       window.abimageLoaded = true
     },
     page: ({ payload }) => {
-      const { meta, session } = payload;
+      const { meta, session, userId, properties } = payload;
       queue.add({
+        event: 'pageView',
         date: meta.ts,
-        session,
-      }) 
+        page: meta.page,
+        session: userId,
+        properties
+      })
     },
     track: ({ payload }) => {
       const { meta, userId, event, properties } = payload;

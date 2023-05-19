@@ -143,6 +143,18 @@ app.post('/track', async (req, res) => {
           });
         }));
       }
+      else if (event == 'imageHide') {
+        await Promise.all((Array.isArray(properties.images) ? properties.images : []).map((image) => {
+          return directus.items('events').createOne({
+            shop: req.headers.origin.split('//').pop(),
+            date,
+            event_type: event,
+            session,
+            image_identifier: getImageIdentifier(image),
+            event_payload: properties,
+          });
+        }));
+      }
   
       else {
         await directus.items('events').createOne({
