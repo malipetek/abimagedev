@@ -109,46 +109,53 @@ app.options('/track', (req, res) => {
 });
 
 app.post('/track', async (req, res) => {
-  const { date, event, properties, session } = req.body;
-  res.set('Access-Control-Allow-Origin', '*');
-
-  try {
-    if (event === 'imageView') {
-      const result = await directus.items('events').createOne({
-        shop: req.headers.origin.split('//').pop(),
-        date,
-        event_type: event,
-        session,
-        image_identifier: getImageIdentifier(properties.image),
-        event_payload: properties,
-      })
-      console.log('create result ', result)
-    }
-
-    else if (event == 'imageViewTick') {
-      await Promise.all((Array.isArray(properties.images) ? properties.images : []).map((image) => {
-        return directus.items('events').createOne({
+  if (Array.isArray(req.body)) {
+    await Promise.all(req.body.map(saveEvent));
+  } else {
+    await saveEvent(req.body);
+  }
+  async function saveEvent(payload) {
+    const { date, event, properties, session } = payload;
+    res.set('Access-Control-Allow-Origin', '*');
+  
+    try {
+      if (event === 'imageView') {
+        const result = await directus.items('events').createOne({
           shop: req.headers.origin.split('//').pop(),
           date,
           event_type: event,
           session,
-          image_identifier: getImageIdentifier(image),
+          image_identifier: getImageIdentifier(properties.image),
+          event_payload: properties,
+        })
+        console.log('create result ', result)
+      }
+  
+      else if (event == 'imageViewTick') {
+        await Promise.all((Array.isArray(properties.images) ? properties.images : []).map((image) => {
+          return directus.items('events').createOne({
+            shop: req.headers.origin.split('//').pop(),
+            date,
+            event_type: event,
+            session,
+            image_identifier: getImageIdentifier(image),
+            event_payload: properties,
+          });
+        }));
+      }
+  
+      else {
+        await directus.items('events').createOne({
+          shop: req.headers.origin.split('//').pop(),
+          date,
+          event_type: event,
+          session,
           event_payload: properties,
         });
-      }));
+      } 
+    } catch (e) {
+      console.error(e);
     }
-
-    else {
-      await directus.items('events').createOne({
-        shop: req.headers.origin.split('//').pop(),
-        date,
-        event_type: event,
-        session,
-        event_payload: properties,
-      });
-    } 
-  } catch (e) {
-    console.error(e);
   }
   
   res.status(200).send();
