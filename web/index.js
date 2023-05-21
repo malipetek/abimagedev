@@ -10,7 +10,6 @@ import events from './events.js';
 import shopify from "./shopify.js";
 import directus from "./directus.js";
 
-import productCreator from "./product-creator.js";
 import GDPRWebhookHandlers from "./gdpr.js";
 import WebHooks from "./webhooks.js";
 

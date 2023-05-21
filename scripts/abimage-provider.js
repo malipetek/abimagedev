@@ -14,19 +14,23 @@ export default function AbimageProvider(userConfig) {
       window.abimageLoaded = true
     },
     page: ({ payload }) => {
+      console.log('page ', payload);
       const { meta, session, userId, properties } = payload;
       queue.add({
         event: 'pageView',
         date: meta.ts,
+        rid: meta.rid,
         page: meta.page,
         session: userId,
         properties
       })
     },
     track: ({ payload }) => {
+      console.log('tarcking ', payload);
       const { meta, userId, event, properties } = payload;
       queue.add({
         date: meta.ts,
+        rid: meta.rid,
         page: meta.page,
         session: userId,
         event,

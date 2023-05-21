@@ -1,6 +1,8 @@
 import Analytics from 'analytics';
 import { v4 as uuid } from 'uuid';
 import abimageProvider from './abimage-provider';
+import onRouteChange from '@analytics/router-utils'
+import { onIdle, onWakeUp } from '@analytics/activity-utils'
 
 const analytics = Analytics({
   app: 'abimage',
@@ -15,6 +17,13 @@ const session = storage.getItem('__abmg_ssi') || uuid();
 storage.setItem('__abmg_ssi', session);
 
 analytics.identify(session);
+
+const FIVE_MINUTES = 300e3
+const ONE_MINUTES = 60e3
+
+const opts = {
+  timeout: ONE_MINUTES,
+}
 
 function initialize() {
 
@@ -106,14 +115,16 @@ function keepTracking() {
 
 const trackKeeper = keepTracking();
 trackKeeper.start();
-// stop tracking when tabs loses focus
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    trackKeeper.stop();
-  } else {
-    trackKeeper.start();
-  }
-});
+
+
+onIdle((activeTime) => {
+  trackKeeper.stop();
+}, opts);
+
+onWakeUp(() => {
+  trackKeeper.start();
+  analytics.track('reVisit');
+}, opts);
 
 // reinitialize when user navigates to a new page
 window.addEventListener('popstate', () => {
