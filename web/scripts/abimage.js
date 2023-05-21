@@ -311,7 +311,7 @@ function initialize() {
   
   const observer = new IntersectionObserver((entries, observer) => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) {
+      if (entry.isIntersecting && entry.isVisible) {
         analytics.track('imageView', {
           image: entry.target.src,
           width: entry.target.width,
@@ -362,17 +362,18 @@ function keepTracking() {
     console.log('starting to observe new image ', image);
     observer.observe(image);
   });
+  // stop observing old images
   images.forEach(image => {
     if (!newImages.includes(image)) {
       observer.unobserve(image);
     }
   });
-  // modify images array
-  images.splice(0, images.length, ...newImages);
+    
+  images = [...document.images];
   // also update visible images array
   visibleImages.forEach(image => {
-    if (!newImages.includes(image)) {
-      visibleImages.splice(visibleImages.indexOf(image), 1);
+    if (!images.includes(image)) {
+      visibleImages.splice(images.indexOf(image), 1);
     }
   });
   }, 10000);
