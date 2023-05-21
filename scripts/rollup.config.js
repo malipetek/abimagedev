@@ -7,7 +7,7 @@ export default {
   plugins: [
     cjs(),
     nodeResolve(),
-    terser()
+    // terser()
   ],
 	output: {
 		file: '../web/scripts/abimage.js',

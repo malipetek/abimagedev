@@ -62,6 +62,7 @@ function initialize() {
   }, options);
   
   images.forEach(image => {
+    console.log('starting to observe ', image);
     observer.observe(image);
   });
 
@@ -85,7 +86,9 @@ function keepTracking() {
   }
   // check if document has new images start observing new ones and stop observing old ones
   const newImages = [...document.images].filter(image => !images.includes(image));
-  newImages.forEach(image => {
+    newImages.forEach(image => {
+    // start observing new images
+    console.log('starting to observe new image ', image);
     observer.observe(image);
   });
   images.forEach(image => {
@@ -129,6 +132,8 @@ onWakeUp(() => {
 // reinitialize when user navigates to a new page
 window.addEventListener('popstate', () => {
   let res = initialize();
+  observer.disconnect();
+
   observer = res.observer;
   images = res.images;
   visibleImages = res.visibleImages;
