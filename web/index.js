@@ -115,13 +115,12 @@ app.post('/track', async (req, res) => {
   }
   async function saveEvent(payload) {
     const { date, event, properties, session, path } = payload;
-    res.set('Access-Control-Allow-Origin', '*');
   
     try {
       if (event === 'imageView') {
         const result = await directus.items('events').createOne({
           shop: req.headers.origin.split('//').pop(),
-          date,
+          date: (new Date(date)).toISOString(),
           event_type: event,
           session,
           image_identifier: getImageIdentifier(properties.image),
@@ -172,7 +171,7 @@ app.post('/track', async (req, res) => {
       console.error(e);
     }
   }
-  
+  res.set('Access-Control-Allow-Origin', '*');
   res.status(200).send();
 });
   
