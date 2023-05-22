@@ -190,7 +190,6 @@ function AbimageProvider(userConfig) {
       queue.add({
         event: 'pageView',
         date: meta.ts,
-        rid: meta.rid,
         page: meta.page,
         session: userId,
         properties
@@ -201,9 +200,9 @@ function AbimageProvider(userConfig) {
       const { meta, userId, event, properties } = payload;
       queue.add({
         date: meta.ts,
-        rid: meta.rid,
         page: meta.page,
         session: userId,
+        path: window.location.pathname,
         event,
         properties
       }); 

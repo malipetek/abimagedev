@@ -114,7 +114,7 @@ app.post('/track', async (req, res) => {
     await saveEvent(req.body);
   }
   async function saveEvent(payload) {
-    const { date, event, properties, session, rid } = payload;
+    const { date, event, properties, session, path } = payload;
     res.set('Access-Control-Allow-Origin', '*');
   
     try {
@@ -126,7 +126,7 @@ app.post('/track', async (req, res) => {
           session,
           image_identifier: getImageIdentifier(properties.image),
           event_payload: properties,
-          rid,
+          path,
         })
         console.log('create result ', result)
       }
@@ -135,12 +135,12 @@ app.post('/track', async (req, res) => {
         await Promise.all((Array.isArray(properties.images) ? properties.images : []).map((image) => {
           return directus.items('events').createOne({
             shop: req.headers.origin.split('//').pop(),
-            date,
+            date: (new Date(date)).toISOString(),
             event_type: event,
             session,
             image_identifier: getImageIdentifier(image),
+            path,
             event_payload: properties,
-            rid,
           });
         }));
       }
@@ -148,12 +148,12 @@ app.post('/track', async (req, res) => {
         await Promise.all((Array.isArray(properties.images) ? properties.images : []).map((image) => {
           return directus.items('events').createOne({
             shop: req.headers.origin.split('//').pop(),
-            date,
+            date: (new Date(date)).toISOString(),
             event_type: event,
             session,
             image_identifier: getImageIdentifier(image),
+            path,
             event_payload: properties,
-            rid,
           });
         }));
       }
@@ -161,11 +161,11 @@ app.post('/track', async (req, res) => {
       else {
         await directus.items('events').createOne({
           shop: req.headers.origin.split('//').pop(),
-          date,
+          date: (new Date(date)).toISOString(),
           event_type: event,
           session,
           event_payload: properties,
-          rid,
+          path: path || properties.path,
         });
       } 
     } catch (e) {
