@@ -363,12 +363,12 @@ function keepTracking() {
     // start observing new images
     console.log('starting to observe new image ', image);
     observer.observe(image);
-  });
+    });
+  const oldImages = images.filter(image => !document.images.includes(image));
   // stop observing old images
-  images.forEach(image => {
-    if (!newImages.includes(image)) {
-      observer.unobserve(image);
-    }
+    oldImages.forEach(image => {
+    visibleImages.splice(images.indexOf(image), 1);
+    observer.unobserve(image);
   });
     
   images = [...document.images];
