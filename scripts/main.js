@@ -93,7 +93,7 @@ function keepTracking() {
     console.log('starting to observe new image ', image);
     observer.observe(image);
     });
-  const oldImages = images.filter(image => !document.images.includes(image));
+  const oldImages = images.filter(image => ![...document.images].includes(image));
   // stop observing old images
     oldImages.forEach(image => {
     visibleImages.splice(images.indexOf(image), 1);
