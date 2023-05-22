@@ -114,7 +114,7 @@ app.post('/track', async (req, res) => {
     await saveEvent(req.body);
   }
   async function saveEvent(payload) {
-    const { date, event, properties, session } = payload;
+    const { date, event, properties, session, rid } = payload;
     res.set('Access-Control-Allow-Origin', '*');
   
     try {
@@ -126,6 +126,7 @@ app.post('/track', async (req, res) => {
           session,
           image_identifier: getImageIdentifier(properties.image),
           event_payload: properties,
+          rid,
         })
         console.log('create result ', result)
       }
@@ -139,6 +140,7 @@ app.post('/track', async (req, res) => {
             session,
             image_identifier: getImageIdentifier(image),
             event_payload: properties,
+            rid,
           });
         }));
       }
@@ -151,6 +153,7 @@ app.post('/track', async (req, res) => {
             session,
             image_identifier: getImageIdentifier(image),
             event_payload: properties,
+            rid,
           });
         }));
       }
@@ -162,6 +165,7 @@ app.post('/track', async (req, res) => {
           event_type: event,
           session,
           event_payload: properties,
+          rid,
         });
       } 
     } catch (e) {
