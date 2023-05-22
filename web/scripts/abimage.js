@@ -306,18 +306,14 @@ function initialize() {
   const options = {
     root: null,
     rootMargin: '0px',
-    threshold: 0.5,
-    trackVisibility: true,
+    threshold: 0.7,
+    trackVisibility: false,
     delay: 100
   };
   
   const observer = new IntersectionObserver((entries, observer) => {
     entries.forEach(entry => {
-      if (typeof entry.isVisible === 'undefined') {
-        // The browser doesn't support Intersection Observer v2, falling back to v1 behavior.
-        entry.isVisible = true;
-      }
-      if (entry.isIntersecting && entry.isVisible) {
+      if (entry.isIntersecting) {
         analytics.track('imageView', {
           image: entry.target.src,
           width: entry.target.width,
