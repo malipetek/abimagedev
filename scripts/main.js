@@ -3,6 +3,10 @@ import { v4 as uuid } from 'uuid';
 import abimageProvider from './abimage-provider';
 import onRouteChange from '@analytics/router-utils'
 import { onIdle, onWakeUp } from '@analytics/activity-utils'
+const FIVE_MINUTES = 300e3;
+const ONE_MINUTES = 60e3;
+const TEN_SECONDS = 10e3;
+const IMAGE_TICK_INTERVAL = TEN_SECONDS; 
 
 const analytics = Analytics({
   app: 'abimage',
@@ -18,8 +22,6 @@ storage.setItem('__abmg_ssi', session);
 
 analytics.identify(session);
 
-const FIVE_MINUTES = 300e3
-const ONE_MINUTES = 60e3
 
 const opts = {
   timeout: ONE_MINUTES,
@@ -104,10 +106,10 @@ function keepTracking() {
   // also update visible images array
   visibleImages.forEach(image => {
     if (!images.includes(image)) {
-      visibleImages.splice(images.indexOf(image), 1);
+      images.splice(images.indexOf(image), 1);
     }
   });
-  }, 10000);
+  }, IMAGE_TICK_INTERVAL);
 
   return {
     stop: () => {
@@ -157,11 +159,25 @@ window.fetch = function () {
 
 // detect link clicks
 document.addEventListener('click', (e) => {
+  
+});
+
+document.addEventListener('click', event => {
+  const clickedElement = event.target;
+  const linkedImages = [...document.images].filter(image => {
+    const parentLink = image.closest('a');
+    return parentLink && parentLink.href.includes(image.src);
+  });
+  if (linkedImages.length > 0 && clickedElement.tagName === 'A') {
+    analytics.track('imageLinkClick', {
+      images: linkedImages,
+      link: clickedElement.href,
+    });
+  }
   if (e.target && e.target.tagName === 'A') {
     analytics.track('linkClick', {
-      href: e.target.href,
+      href: clickedElement.href,
       text: e.target.innerText
     });
   }
 });
-

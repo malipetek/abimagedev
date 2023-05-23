@@ -1,5 +1,5 @@
 import Queue from './Queue.js';
-const queue = new Queue();
+const queue = new Queue('abimage_analytics_queue');
 
 const customAnalyticsEndpoint = 'https://abimagedev-production.up.railway.app/track'
 

@@ -12,6 +12,7 @@ import directus from "./directus.js";
 
 import GDPRWebhookHandlers from "./gdpr.js";
 import WebHooks from "./webhooks.js";
+import { getImageIdentifier } from "./utils.js";
 
 const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT, 10);
 
@@ -89,16 +90,6 @@ app.post('/api/graphql/proxy', async (req, res) => {
     res.status(500).send({ error: e.message });
   }
 });
-function getImageIdentifier(uri) {
-  let image_identifier = null;
-  try {
-    const u = new URL(uri);
-    image_identifier = u.pathname.split('/').pop();
-  } catch (e) {
-    image_identifier = 'unknown';
-  }
-  return image_identifier
-}
 
 app.options('/track', (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
@@ -117,7 +108,7 @@ app.post('/track', async (req, res) => {
     const { date, event, properties, session, path } = payload;
   
     try {
-      if (event === 'imageView') {
+      if (event === 'imageView' || event === 'imageHide') {
         const result = await directus.items('events').createOne({
           shop: req.headers.origin.split('//').pop(),
           date: (new Date(date)).toISOString(),
@@ -143,20 +134,7 @@ app.post('/track', async (req, res) => {
           });
         }));
       }
-      else if (event == 'imageHide') {
-        await Promise.all((Array.isArray(properties.images) ? properties.images : []).map((image) => {
-          return directus.items('events').createOne({
-            shop: req.headers.origin.split('//').pop(),
-            date: (new Date(date)).toISOString(),
-            event_type: event,
-            session,
-            image_identifier: getImageIdentifier(image),
-            path,
-            event_payload: properties,
-          });
-        }));
-      }
-  
+      
       else {
         await directus.items('events').createOne({
           shop: req.headers.origin.split('//').pop(),
