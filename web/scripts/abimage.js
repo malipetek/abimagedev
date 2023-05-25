@@ -817,10 +817,18 @@ const opts = {
 function initialize() {
 
   analytics.page();
-  
+  /**
+   * An array of image URLs that are currently visible on the page.
+   * @type {HTMLImageElement[]}
+   */
   const visibleImages = [];
   
+  /**
+   * An array of all image elements on the page.
+   * @type {HTMLImageElement[]}
+   */
   const images = [...document.images];
+
   const options = {
     root: null,
     rootMargin: '0px',
@@ -840,9 +848,9 @@ function initialize() {
           screen_width: screen.availWidth,
           screen_height: screen.availHeight
         });
-        visibleImages.push(entry.target.src);
+        visibleImages.push(entry.target);
       } else {
-        const wasVisibleIndex = visibleImages.indexOf(entry.target.src);
+        const wasVisibleIndex = visibleImages.indexOf(entry.target);
         if (wasVisibleIndex !== -1) {
           visibleImages.splice(wasVisibleIndex, 1);
           analytics.track('imageHide', {
@@ -875,7 +883,7 @@ function keepTracking() {
   if (visibleImages.length > 0) {
     analytics.track('imageViewTick', {
       path: window.location.pathname,
-      images: visibleImages,
+      images: visibleImages.map(image => image.src),
     });
   }
   // check if document has new images start observing new ones and stop observing old ones
@@ -952,13 +960,14 @@ window.fetch = function () {
 
 document.addEventListener('click', event => {
   const clickedElement = event.target;
-  const linkedImages = [...document.images].filter(image => {
+  const [linkedImage] = [...document.images].filter(image => {
     const parentLink = image.closest('a');
     return parentLink && parentLink.href.includes(image.src);
   });
-  if (linkedImages.length > 0 && clickedElement.tagName === 'A') {
+  if (linkedImage && clickedElement.tagName === 'A') {
     analytics.track('imageLinkClick', {
-      images: linkedImages,
+      image: linkedImage.src,
+      text: clickedElement.innerText,
       link: clickedElement.href,
       path: window.location.pathname
     });
@@ -971,3 +980,20 @@ document.addEventListener('click', event => {
     });
   }
 });
+
+function trackButbutton() {
+  const buyButton = document.querySelector('.shopify-payment-button__button');
+  buyButton.addEventListener('click', event => {
+    analytics.track('buyButtonClick', {
+      path: window.location.pathname
+    });
+  });
+}
+
+(() => {
+  if(document.readyState === 'complete') {
+    trackButbutton();
+  } else {
+    document.addEventListener('DOMContentLoaded', trackButbutton);
+  }
+})();
