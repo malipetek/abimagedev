@@ -1,15 +1,15 @@
+import { compressToBase64 } from 'lz-string';
 import Queue from './Queue.js';
 const queue = new Queue('abimage_analytics_queue');
 
 const customAnalyticsEndpoint = 'https://abimagedev-production.up.railway.app/track'
 
-export default function AbimageProvider(userConfig) {
+export default function AbimageProvider() {
   // return object for analytics to use
 
   return {
     name: 'abimage-provider',
-    config: {
-    },
+    config: {},
     initialize: ({ config }) => {
       window.abimageLoaded = true
     },
@@ -25,13 +25,13 @@ export default function AbimageProvider(userConfig) {
       })
     },
     track: ({ payload }) => {
-      console.log('tarcking ', payload);
+      console.log('tracking ', payload);
       const { meta, userId, event, properties } = payload;
       queue.add({
         date: meta.ts,
         page: meta.page,
         session: userId,
-        path: window.location.pathname,
+        path: properties.path,
         event,
         properties
       }) 
@@ -51,12 +51,12 @@ const sendRequests = () => {
     fetch(customAnalyticsEndpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'text/plain',
       },
-      body: JSON.stringify(requests)
+      body: compressToBase64(JSON.stringify(requests))
     })
     queue.clear();
   }
 }
 
-setInterval(sendRequests, 1000); // Send requests every second
+setInterval(sendRequests, 10000); // Send requests every 10 seconds

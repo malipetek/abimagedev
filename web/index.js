@@ -13,6 +13,7 @@ import directus from "./directus.js";
 import GDPRWebhookHandlers from "./gdpr.js";
 import WebHooks from "./webhooks.js";
 import { getImageIdentifier } from "./utils.js";
+import { decompressFromBase64 } from 'lz-string';
 
 const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT, 10);
 
@@ -99,11 +100,17 @@ app.options('/track', (req, res) => {
 });
 
 app.post('/track', async (req, res) => {
-  if (Array.isArray(req.body)) {
-    await Promise.all(req.body.map(saveEvent));
-  } else {
-    await saveEvent(req.body);
+  try {
+    const payload = JSON.parse(decompressFromBase64(req.body));
+    if (Array.isArray(payload)) {
+      await Promise.all(payload.map(saveEvent));
+    } else {
+      await saveEvent(payload);
+    }
+  } catch (err) {
+    console.log('Error while decompressing or parsing', err);
   }
+  
   async function saveEvent(payload) {
     const { date, event, properties, session, path } = payload;
   
@@ -134,7 +141,7 @@ app.post('/track', async (req, res) => {
           });
         }));
       }
-      
+
       else {
         await directus.items('events').createOne({
           shop: req.headers.origin.split('//').pop(),

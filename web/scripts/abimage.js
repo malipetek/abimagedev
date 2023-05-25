@@ -132,6 +132,518 @@ function v4(options, buf, offset) {
   return unsafeStringify(rnds);
 }
 
+var lzString = {exports: {}};
+
+lzString.exports;
+
+(function (module) {
+	// Copyright (c) 2013 Pieroxy <pieroxy@pieroxy.net>
+	// This work is free. You can redistribute it and/or modify it
+	// under the terms of the WTFPL, Version 2
+	// For more information see LICENSE.txt or http://www.wtfpl.net/
+	//
+	// For more information, the home page:
+	// http://pieroxy.net/blog/pages/lz-string/testing.html
+	//
+	// LZ-based compression algorithm, version 1.4.5
+	var LZString = (function() {
+
+	// private property
+	var f = String.fromCharCode;
+	var keyStrBase64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+	var keyStrUriSafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$";
+	var baseReverseDic = {};
+
+	function getBaseValue(alphabet, character) {
+	  if (!baseReverseDic[alphabet]) {
+	    baseReverseDic[alphabet] = {};
+	    for (var i=0 ; i<alphabet.length ; i++) {
+	      baseReverseDic[alphabet][alphabet.charAt(i)] = i;
+	    }
+	  }
+	  return baseReverseDic[alphabet][character];
+	}
+
+	var LZString = {
+	  compressToBase64 : function (input) {
+	    if (input == null) return "";
+	    var res = LZString._compress(input, 6, function(a){return keyStrBase64.charAt(a);});
+	    switch (res.length % 4) { // To produce valid Base64
+	    default: // When could this happen ?
+	    case 0 : return res;
+	    case 1 : return res+"===";
+	    case 2 : return res+"==";
+	    case 3 : return res+"=";
+	    }
+	  },
+
+	  decompressFromBase64 : function (input) {
+	    if (input == null) return "";
+	    if (input == "") return null;
+	    return LZString._decompress(input.length, 32, function(index) { return getBaseValue(keyStrBase64, input.charAt(index)); });
+	  },
+
+	  compressToUTF16 : function (input) {
+	    if (input == null) return "";
+	    return LZString._compress(input, 15, function(a){return f(a+32);}) + " ";
+	  },
+
+	  decompressFromUTF16: function (compressed) {
+	    if (compressed == null) return "";
+	    if (compressed == "") return null;
+	    return LZString._decompress(compressed.length, 16384, function(index) { return compressed.charCodeAt(index) - 32; });
+	  },
+
+	  //compress into uint8array (UCS-2 big endian format)
+	  compressToUint8Array: function (uncompressed) {
+	    var compressed = LZString.compress(uncompressed);
+	    var buf=new Uint8Array(compressed.length*2); // 2 bytes per character
+
+	    for (var i=0, TotalLen=compressed.length; i<TotalLen; i++) {
+	      var current_value = compressed.charCodeAt(i);
+	      buf[i*2] = current_value >>> 8;
+	      buf[i*2+1] = current_value % 256;
+	    }
+	    return buf;
+	  },
+
+	  //decompress from uint8array (UCS-2 big endian format)
+	  decompressFromUint8Array:function (compressed) {
+	    if (compressed===null || compressed===undefined){
+	        return LZString.decompress(compressed);
+	    } else {
+	        var buf=new Array(compressed.length/2); // 2 bytes per character
+	        for (var i=0, TotalLen=buf.length; i<TotalLen; i++) {
+	          buf[i]=compressed[i*2]*256+compressed[i*2+1];
+	        }
+
+	        var result = [];
+	        buf.forEach(function (c) {
+	          result.push(f(c));
+	        });
+	        return LZString.decompress(result.join(''));
+
+	    }
+
+	  },
+
+
+	  //compress into a string that is already URI encoded
+	  compressToEncodedURIComponent: function (input) {
+	    if (input == null) return "";
+	    return LZString._compress(input, 6, function(a){return keyStrUriSafe.charAt(a);});
+	  },
+
+	  //decompress from an output of compressToEncodedURIComponent
+	  decompressFromEncodedURIComponent:function (input) {
+	    if (input == null) return "";
+	    if (input == "") return null;
+	    input = input.replace(/ /g, "+");
+	    return LZString._decompress(input.length, 32, function(index) { return getBaseValue(keyStrUriSafe, input.charAt(index)); });
+	  },
+
+	  compress: function (uncompressed) {
+	    return LZString._compress(uncompressed, 16, function(a){return f(a);});
+	  },
+	  _compress: function (uncompressed, bitsPerChar, getCharFromInt) {
+	    if (uncompressed == null) return "";
+	    var i, value,
+	        context_dictionary= {},
+	        context_dictionaryToCreate= {},
+	        context_c="",
+	        context_wc="",
+	        context_w="",
+	        context_enlargeIn= 2, // Compensate for the first entry which should not count
+	        context_dictSize= 3,
+	        context_numBits= 2,
+	        context_data=[],
+	        context_data_val=0,
+	        context_data_position=0,
+	        ii;
+
+	    for (ii = 0; ii < uncompressed.length; ii += 1) {
+	      context_c = uncompressed.charAt(ii);
+	      if (!Object.prototype.hasOwnProperty.call(context_dictionary,context_c)) {
+	        context_dictionary[context_c] = context_dictSize++;
+	        context_dictionaryToCreate[context_c] = true;
+	      }
+
+	      context_wc = context_w + context_c;
+	      if (Object.prototype.hasOwnProperty.call(context_dictionary,context_wc)) {
+	        context_w = context_wc;
+	      } else {
+	        if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate,context_w)) {
+	          if (context_w.charCodeAt(0)<256) {
+	            for (i=0 ; i<context_numBits ; i++) {
+	              context_data_val = (context_data_val << 1);
+	              if (context_data_position == bitsPerChar-1) {
+	                context_data_position = 0;
+	                context_data.push(getCharFromInt(context_data_val));
+	                context_data_val = 0;
+	              } else {
+	                context_data_position++;
+	              }
+	            }
+	            value = context_w.charCodeAt(0);
+	            for (i=0 ; i<8 ; i++) {
+	              context_data_val = (context_data_val << 1) | (value&1);
+	              if (context_data_position == bitsPerChar-1) {
+	                context_data_position = 0;
+	                context_data.push(getCharFromInt(context_data_val));
+	                context_data_val = 0;
+	              } else {
+	                context_data_position++;
+	              }
+	              value = value >> 1;
+	            }
+	          } else {
+	            value = 1;
+	            for (i=0 ; i<context_numBits ; i++) {
+	              context_data_val = (context_data_val << 1) | value;
+	              if (context_data_position ==bitsPerChar-1) {
+	                context_data_position = 0;
+	                context_data.push(getCharFromInt(context_data_val));
+	                context_data_val = 0;
+	              } else {
+	                context_data_position++;
+	              }
+	              value = 0;
+	            }
+	            value = context_w.charCodeAt(0);
+	            for (i=0 ; i<16 ; i++) {
+	              context_data_val = (context_data_val << 1) | (value&1);
+	              if (context_data_position == bitsPerChar-1) {
+	                context_data_position = 0;
+	                context_data.push(getCharFromInt(context_data_val));
+	                context_data_val = 0;
+	              } else {
+	                context_data_position++;
+	              }
+	              value = value >> 1;
+	            }
+	          }
+	          context_enlargeIn--;
+	          if (context_enlargeIn == 0) {
+	            context_enlargeIn = Math.pow(2, context_numBits);
+	            context_numBits++;
+	          }
+	          delete context_dictionaryToCreate[context_w];
+	        } else {
+	          value = context_dictionary[context_w];
+	          for (i=0 ; i<context_numBits ; i++) {
+	            context_data_val = (context_data_val << 1) | (value&1);
+	            if (context_data_position == bitsPerChar-1) {
+	              context_data_position = 0;
+	              context_data.push(getCharFromInt(context_data_val));
+	              context_data_val = 0;
+	            } else {
+	              context_data_position++;
+	            }
+	            value = value >> 1;
+	          }
+
+
+	        }
+	        context_enlargeIn--;
+	        if (context_enlargeIn == 0) {
+	          context_enlargeIn = Math.pow(2, context_numBits);
+	          context_numBits++;
+	        }
+	        // Add wc to the dictionary.
+	        context_dictionary[context_wc] = context_dictSize++;
+	        context_w = String(context_c);
+	      }
+	    }
+
+	    // Output the code for w.
+	    if (context_w !== "") {
+	      if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate,context_w)) {
+	        if (context_w.charCodeAt(0)<256) {
+	          for (i=0 ; i<context_numBits ; i++) {
+	            context_data_val = (context_data_val << 1);
+	            if (context_data_position == bitsPerChar-1) {
+	              context_data_position = 0;
+	              context_data.push(getCharFromInt(context_data_val));
+	              context_data_val = 0;
+	            } else {
+	              context_data_position++;
+	            }
+	          }
+	          value = context_w.charCodeAt(0);
+	          for (i=0 ; i<8 ; i++) {
+	            context_data_val = (context_data_val << 1) | (value&1);
+	            if (context_data_position == bitsPerChar-1) {
+	              context_data_position = 0;
+	              context_data.push(getCharFromInt(context_data_val));
+	              context_data_val = 0;
+	            } else {
+	              context_data_position++;
+	            }
+	            value = value >> 1;
+	          }
+	        } else {
+	          value = 1;
+	          for (i=0 ; i<context_numBits ; i++) {
+	            context_data_val = (context_data_val << 1) | value;
+	            if (context_data_position == bitsPerChar-1) {
+	              context_data_position = 0;
+	              context_data.push(getCharFromInt(context_data_val));
+	              context_data_val = 0;
+	            } else {
+	              context_data_position++;
+	            }
+	            value = 0;
+	          }
+	          value = context_w.charCodeAt(0);
+	          for (i=0 ; i<16 ; i++) {
+	            context_data_val = (context_data_val << 1) | (value&1);
+	            if (context_data_position == bitsPerChar-1) {
+	              context_data_position = 0;
+	              context_data.push(getCharFromInt(context_data_val));
+	              context_data_val = 0;
+	            } else {
+	              context_data_position++;
+	            }
+	            value = value >> 1;
+	          }
+	        }
+	        context_enlargeIn--;
+	        if (context_enlargeIn == 0) {
+	          context_enlargeIn = Math.pow(2, context_numBits);
+	          context_numBits++;
+	        }
+	        delete context_dictionaryToCreate[context_w];
+	      } else {
+	        value = context_dictionary[context_w];
+	        for (i=0 ; i<context_numBits ; i++) {
+	          context_data_val = (context_data_val << 1) | (value&1);
+	          if (context_data_position == bitsPerChar-1) {
+	            context_data_position = 0;
+	            context_data.push(getCharFromInt(context_data_val));
+	            context_data_val = 0;
+	          } else {
+	            context_data_position++;
+	          }
+	          value = value >> 1;
+	        }
+
+
+	      }
+	      context_enlargeIn--;
+	      if (context_enlargeIn == 0) {
+	        context_enlargeIn = Math.pow(2, context_numBits);
+	        context_numBits++;
+	      }
+	    }
+
+	    // Mark the end of the stream
+	    value = 2;
+	    for (i=0 ; i<context_numBits ; i++) {
+	      context_data_val = (context_data_val << 1) | (value&1);
+	      if (context_data_position == bitsPerChar-1) {
+	        context_data_position = 0;
+	        context_data.push(getCharFromInt(context_data_val));
+	        context_data_val = 0;
+	      } else {
+	        context_data_position++;
+	      }
+	      value = value >> 1;
+	    }
+
+	    // Flush the last char
+	    while (true) {
+	      context_data_val = (context_data_val << 1);
+	      if (context_data_position == bitsPerChar-1) {
+	        context_data.push(getCharFromInt(context_data_val));
+	        break;
+	      }
+	      else context_data_position++;
+	    }
+	    return context_data.join('');
+	  },
+
+	  decompress: function (compressed) {
+	    if (compressed == null) return "";
+	    if (compressed == "") return null;
+	    return LZString._decompress(compressed.length, 32768, function(index) { return compressed.charCodeAt(index); });
+	  },
+
+	  _decompress: function (length, resetValue, getNextValue) {
+	    var dictionary = [],
+	        enlargeIn = 4,
+	        dictSize = 4,
+	        numBits = 3,
+	        entry = "",
+	        result = [],
+	        i,
+	        w,
+	        bits, resb, maxpower, power,
+	        c,
+	        data = {val:getNextValue(0), position:resetValue, index:1};
+
+	    for (i = 0; i < 3; i += 1) {
+	      dictionary[i] = i;
+	    }
+
+	    bits = 0;
+	    maxpower = Math.pow(2,2);
+	    power=1;
+	    while (power!=maxpower) {
+	      resb = data.val & data.position;
+	      data.position >>= 1;
+	      if (data.position == 0) {
+	        data.position = resetValue;
+	        data.val = getNextValue(data.index++);
+	      }
+	      bits |= (resb>0 ? 1 : 0) * power;
+	      power <<= 1;
+	    }
+
+	    switch (bits) {
+	      case 0:
+	          bits = 0;
+	          maxpower = Math.pow(2,8);
+	          power=1;
+	          while (power!=maxpower) {
+	            resb = data.val & data.position;
+	            data.position >>= 1;
+	            if (data.position == 0) {
+	              data.position = resetValue;
+	              data.val = getNextValue(data.index++);
+	            }
+	            bits |= (resb>0 ? 1 : 0) * power;
+	            power <<= 1;
+	          }
+	        c = f(bits);
+	        break;
+	      case 1:
+	          bits = 0;
+	          maxpower = Math.pow(2,16);
+	          power=1;
+	          while (power!=maxpower) {
+	            resb = data.val & data.position;
+	            data.position >>= 1;
+	            if (data.position == 0) {
+	              data.position = resetValue;
+	              data.val = getNextValue(data.index++);
+	            }
+	            bits |= (resb>0 ? 1 : 0) * power;
+	            power <<= 1;
+	          }
+	        c = f(bits);
+	        break;
+	      case 2:
+	        return "";
+	    }
+	    dictionary[3] = c;
+	    w = c;
+	    result.push(c);
+	    while (true) {
+	      if (data.index > length) {
+	        return "";
+	      }
+
+	      bits = 0;
+	      maxpower = Math.pow(2,numBits);
+	      power=1;
+	      while (power!=maxpower) {
+	        resb = data.val & data.position;
+	        data.position >>= 1;
+	        if (data.position == 0) {
+	          data.position = resetValue;
+	          data.val = getNextValue(data.index++);
+	        }
+	        bits |= (resb>0 ? 1 : 0) * power;
+	        power <<= 1;
+	      }
+
+	      switch (c = bits) {
+	        case 0:
+	          bits = 0;
+	          maxpower = Math.pow(2,8);
+	          power=1;
+	          while (power!=maxpower) {
+	            resb = data.val & data.position;
+	            data.position >>= 1;
+	            if (data.position == 0) {
+	              data.position = resetValue;
+	              data.val = getNextValue(data.index++);
+	            }
+	            bits |= (resb>0 ? 1 : 0) * power;
+	            power <<= 1;
+	          }
+
+	          dictionary[dictSize++] = f(bits);
+	          c = dictSize-1;
+	          enlargeIn--;
+	          break;
+	        case 1:
+	          bits = 0;
+	          maxpower = Math.pow(2,16);
+	          power=1;
+	          while (power!=maxpower) {
+	            resb = data.val & data.position;
+	            data.position >>= 1;
+	            if (data.position == 0) {
+	              data.position = resetValue;
+	              data.val = getNextValue(data.index++);
+	            }
+	            bits |= (resb>0 ? 1 : 0) * power;
+	            power <<= 1;
+	          }
+	          dictionary[dictSize++] = f(bits);
+	          c = dictSize-1;
+	          enlargeIn--;
+	          break;
+	        case 2:
+	          return result.join('');
+	      }
+
+	      if (enlargeIn == 0) {
+	        enlargeIn = Math.pow(2, numBits);
+	        numBits++;
+	      }
+
+	      if (dictionary[c]) {
+	        entry = dictionary[c];
+	      } else {
+	        if (c === dictSize) {
+	          entry = w + w.charAt(0);
+	        } else {
+	          return null;
+	        }
+	      }
+	      result.push(entry);
+
+	      // Add w+entry[0] to the dictionary.
+	      dictionary[dictSize++] = w + entry.charAt(0);
+	      enlargeIn--;
+
+	      w = entry;
+
+	      if (enlargeIn == 0) {
+	        enlargeIn = Math.pow(2, numBits);
+	        numBits++;
+	      }
+
+	    }
+	  }
+	};
+	  return LZString;
+	})();
+
+	if( module != null ) {
+	  module.exports = LZString;
+	} else if( typeof angular !== 'undefined' && angular != null ) {
+	  angular.module('LZString', [])
+	  .factory('LZString', function () {
+	    return LZString;
+	  });
+	} 
+} (lzString));
+
+var lzStringExports = lzString.exports;
+
 class Queue {
   constructor(key) {
     this.key = key;
@@ -178,13 +690,12 @@ const queue = new Queue('abimage_analytics_queue');
 
 const customAnalyticsEndpoint = 'https://abimagedev-production.up.railway.app/track';
 
-function AbimageProvider(userConfig) {
+function AbimageProvider() {
   // return object for analytics to use
 
   return {
     name: 'abimage-provider',
-    config: {
-    },
+    config: {},
     initialize: ({ config }) => {
       window.abimageLoaded = true;
     },
@@ -200,13 +711,13 @@ function AbimageProvider(userConfig) {
       });
     },
     track: ({ payload }) => {
-      console.log('tarcking ', payload);
+      console.log('tracking ', payload);
       const { meta, userId, event, properties } = payload;
       queue.add({
         date: meta.ts,
         page: meta.page,
         session: userId,
-        path: window.location.pathname,
+        path: properties.path,
         event,
         properties
       }); 
@@ -226,15 +737,15 @@ const sendRequests = () => {
     fetch(customAnalyticsEndpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'text/plain',
       },
-      body: JSON.stringify(requests)
+      body: lzStringExports.compressToBase64(JSON.stringify(requests))
     });
     queue.clear();
   }
 };
 
-setInterval(sendRequests, 1000); // Send requests every second
+setInterval(sendRequests, 10000); // Send requests every 10 seconds
 
 function i$1(r){return function(e,o,i,f){var a=i||b$3;if(!$$1)return a;var v=f||!1,c=u$1(o),p=u$1(e,!0),d=[];if(!p.length)throw new Error("noElements");if(!c.length)throw new Error("noEvent");return function n(r){var t=r?"addEventListener":"removeEventListener";r&&(d=[]);for(var e=0;e<p.length;e++){var o=p[e];d[e]=r?l(a,v):d[e]||a;for(var i=0;i<c.length;i++)o[t]?o[t](c[i],d[e],v):o["on"+c[i]]=r?d[e]:null;}return n.bind(null,!r)}(r)}}function u$1(n,r){if(q$1(n))return r?u$1(document.querySelectorAll(n)):n.split(" ").map(function(n){return n.trim()});if(NodeList.prototype.isPrototypeOf(n)){for(var t=[],i=n.length>>>0;i--;)t[i]=n[i];return t}return Hn(n)}function l(n,r){return r&&r.once?f(n):n}function f(n,r){var t;return function(){return n&&(t=n.apply(r||this,arguments),n=null),t}}var a$1=i$1("Event");function c$1(t,e){return $$1&&W$1(window[t])?(o=window[t],i=e,void 0===(u=window)&&(u=null),W$1(o)?function(){o.apply(u,arguments),i.apply(u,arguments);}:i):window[t]=e;var o,i,u;}c$1.bind(null,"onerror");c$1.bind(null,"onload");
 
@@ -281,12 +792,12 @@ function getHiddenProp() {
 function e$1(){return e$1=Object.assign||function(t){for(var n=1;n<arguments.length;n++){var e=arguments[n];for(var o in e)Object.prototype.hasOwnProperty.call(e,o)&&(t[o]=e[o]);}return t},e$1.apply(this,arguments)}var o=["mousemove","mousedown","touchmove","touchstart","touchend","keydown"];function r(e,r){void 0===r&&(r={});var u=function(t,n){var e=this,o=!1;return function(r){o||(t.call(e,r),o=!0,setTimeout(function(){return o=!1},n));}}(e,r.throttle||1e4),i=[];function a(){var e=onTabChange(function(t){t||u({type:"tabVisible"});});return i=[e].concat(o.map(function(n){return a$1(document,n,u)})).concat(a$1(window,"load",u)).concat(a$1(window,"scroll",u,{capture:!0,passive:!0})),c}function c(){i.map(function(t){return t()});}return a(),function(){return c(),a}}function u(t,n){return void 0===n&&(n={}),a(e$1({onIdle:t},n))}function i(t,n){return void 0===n&&(n={}),a(e$1({onWakeUp:t},n))}function a(t){var n,e,o=t.onIdle,u=t.onWakeUp,i=t.onHeartbeat,a=t.timeout,f=void 0===a?1e4:a,l=t.throttle,s=void 0===l?2e3:l,d=!1,v=!1,p=new Date,m=function(){return clearTimeout(n)};function w(t){m(),i&&!d&&i(c(p),t),u&&d&&(d=!1,u(c(e),t),p=new Date),n=setTimeout(function(){d=!0,o&&(e=new Date,o(c(p),t));},f);}var h=r(w,{throttle:s});return {disable:function(){v=!0,d=!1,m();var t=h();return function(){return v=!1,p=new Date,w({type:"load"}),t()}},getStatus:function(){return {isIdle:d,isDisabled:v,active:d?0:c(p,v),idle:d?c(e,v):0}}}}function c(t,n){return n?0:Math.round((new Date-t)/1e3)}
 
 const ONE_MINUTES = 60e3;
-const TEN_SECONDS = 10e3;
-const IMAGE_TICK_INTERVAL = TEN_SECONDS; 
+const ONE_SECOND = 1e3;
+const IMAGE_TICK_INTERVAL = ONE_SECOND; 
 
 const analytics = analyticsLib({
   app: 'abimage',
-  version: '1.0.4',
+  version: '1.0.5',
   plugins: [
     AbimageProvider()
   ]
@@ -322,6 +833,7 @@ function initialize() {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         analytics.track('imageView', {
+          path: window.location.pathname,
           image: entry.target.src,
           width: entry.target.width,
           height: entry.target.height,
@@ -334,6 +846,7 @@ function initialize() {
         if (wasVisibleIndex !== -1) {
           visibleImages.splice(wasVisibleIndex, 1);
           analytics.track('imageHide', {
+            path: window.location.pathname,
             image: entry.target.src,
           });
         }
@@ -361,6 +874,7 @@ function keepTracking() {
   let start = () => setInterval(() => {
   if (visibleImages.length > 0) {
     analytics.track('imageViewTick', {
+      path: window.location.pathname,
       images: visibleImages,
     });
   }
@@ -407,7 +921,9 @@ u((activeTime) => {
 
 i(() => {
   trackKeeper.start();
-  analytics.track('reVisit');
+  analytics.track('reVisit', {
+    path: window.location.pathname
+  });
 }, opts);
 
 // reinitialize when user navigates to a new page
@@ -427,16 +943,12 @@ window.fetch = function () {
   const url = args[0];
   if (url === '/cart/add') {
     analytics.track('addToCart', {
+      path: window.location.pathname,
       products: args[1].body
     });
   }
   return originalFetch.apply(this, args);
 };
-
-// detect link clicks
-document.addEventListener('click', (e) => {
-  
-});
 
 document.addEventListener('click', event => {
   const clickedElement = event.target;
@@ -448,12 +960,14 @@ document.addEventListener('click', event => {
     analytics.track('imageLinkClick', {
       images: linkedImages,
       link: clickedElement.href,
+      path: window.location.pathname
     });
   }
   if (e.target && e.target.tagName === 'A') {
     analytics.track('linkClick', {
       href: clickedElement.href,
-      text: e.target.innerText
+      text: e.target.innerText,
+      path: window.location.pathname
     });
   }
 });

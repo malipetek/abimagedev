@@ -1,16 +1,18 @@
 import Analytics from 'analytics';
 import { v4 as uuid } from 'uuid';
 import abimageProvider from './abimage-provider';
-import onRouteChange from '@analytics/router-utils'
-import { onIdle, onWakeUp } from '@analytics/activity-utils'
+import onRouteChange from '@analytics/router-utils';
+import { onIdle, onWakeUp } from '@analytics/activity-utils';
+import { compressToBase64 } from 'lz-string';
 const FIVE_MINUTES = 300e3;
 const ONE_MINUTES = 60e3;
 const TEN_SECONDS = 10e3;
-const IMAGE_TICK_INTERVAL = TEN_SECONDS; 
+const ONE_SECOND = 1e3;
+const IMAGE_TICK_INTERVAL = ONE_SECOND; 
 
 const analytics = Analytics({
   app: 'abimage',
-  version: '1.0.4',
+  version: '1.0.5',
   plugins: [
     abimageProvider()
   ]
@@ -46,6 +48,7 @@ function initialize() {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         analytics.track('imageView', {
+          path: window.location.pathname,
           image: entry.target.src,
           width: entry.target.width,
           height: entry.target.height,
@@ -58,6 +61,7 @@ function initialize() {
         if (wasVisibleIndex !== -1) {
           visibleImages.splice(wasVisibleIndex, 1);
           analytics.track('imageHide', {
+            path: window.location.pathname,
             image: entry.target.src,
           });
         }
@@ -85,6 +89,7 @@ function keepTracking() {
   let start = () => setInterval(() => {
   if (visibleImages.length > 0) {
     analytics.track('imageViewTick', {
+      path: window.location.pathname,
       images: visibleImages,
     });
   }
@@ -131,7 +136,9 @@ onIdle((activeTime) => {
 
 onWakeUp(() => {
   trackKeeper.start();
-  analytics.track('reVisit');
+  analytics.track('reVisit', {
+    path: window.location.pathname
+  });
 }, opts);
 
 // reinitialize when user navigates to a new page
@@ -151,16 +158,12 @@ window.fetch = function () {
   const url = args[0];
   if (url === '/cart/add') {
     analytics.track('addToCart', {
+      path: window.location.pathname,
       products: args[1].body
     });
   }
   return originalFetch.apply(this, args);
 }
-
-// detect link clicks
-document.addEventListener('click', (e) => {
-  
-});
 
 document.addEventListener('click', event => {
   const clickedElement = event.target;
@@ -172,12 +175,14 @@ document.addEventListener('click', event => {
     analytics.track('imageLinkClick', {
       images: linkedImages,
       link: clickedElement.href,
+      path: window.location.pathname
     });
   }
   if (e.target && e.target.tagName === 'A') {
     analytics.track('linkClick', {
       href: clickedElement.href,
-      text: e.target.innerText
+      text: e.target.innerText,
+      path: window.location.pathname
     });
   }
 });
