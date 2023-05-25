@@ -100,6 +100,7 @@ app.options('/track', (req, res) => {
 });
 
 app.post('/track', async (req, res) => {
+  console.log('track request body: ', req.body);
   try {
     const payload = JSON.parse(decompressFromBase64(req.body));
     if (Array.isArray(payload)) {

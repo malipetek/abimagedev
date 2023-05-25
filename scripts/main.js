@@ -177,10 +177,10 @@ document.addEventListener('click', event => {
       path: window.location.pathname
     });
   }
-  if (e.target && e.target.tagName === 'A') {
+  if (event.target && event.target.tagName === 'A') {
     analytics.track('linkClick', {
       href: clickedElement.href,
-      text: e.target.innerText,
+      text: event.target.innerText,
       path: window.location.pathname
     });
   }
