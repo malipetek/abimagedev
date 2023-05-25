@@ -57,6 +57,7 @@ app.post(
 app.use("/api/*", shopify.validateAuthenticatedSession());
 
 app.use(express.json());
+app.use(express.text());
 
 app.post('/api/graphql/proxy', async (req, res) => {
 
