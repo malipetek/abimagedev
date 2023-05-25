@@ -13,8 +13,8 @@ import directus from "./directus.js";
 import GDPRWebhookHandlers from "./gdpr.js";
 import WebHooks from "./webhooks.js";
 import { getImageIdentifier } from "./utils.js";
-import { decompressFromBase64 } from 'lz-string';
-
+import lz from 'lz-string';
+const { decompressFromBase64 } = lz;
 const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT, 10);
 
 const STATIC_PATH =
@@ -110,7 +110,7 @@ app.post('/track', async (req, res) => {
   } catch (err) {
     console.log('Error while decompressing or parsing', err);
   }
-  
+
   async function saveEvent(payload) {
     const { date, event, properties, session, path } = payload;
   
