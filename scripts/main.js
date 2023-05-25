@@ -3,7 +3,6 @@ import { v4 as uuid } from 'uuid';
 import abimageProvider from './abimage-provider';
 import onRouteChange from '@analytics/router-utils';
 import { onIdle, onWakeUp } from '@analytics/activity-utils';
-import { compressToBase64 } from 'lz-string';
 const FIVE_MINUTES = 300e3;
 const ONE_MINUTES = 60e3;
 const TEN_SECONDS = 10e3;
