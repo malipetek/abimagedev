@@ -14,7 +14,6 @@ export default function AbimageProvider() {
       window.abimageLoaded = true
     },
     page: ({ payload }) => {
-      console.log('page ', payload);
       const { meta, session, userId, properties } = payload;
       queue.add({
         event: 'pageView',
@@ -25,7 +24,6 @@ export default function AbimageProvider() {
       })
     },
     track: ({ payload }) => {
-      console.log('tracking ', payload);
       const { meta, userId, event, properties } = payload;
       queue.add({
         date: meta.ts,
