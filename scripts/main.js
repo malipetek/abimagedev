@@ -42,6 +42,25 @@ function initialize() {
    * @type {HTMLImageElement[]}
    */
   const images = [...document.images];
+  const imageLocations = {
+    set images(imgs) {
+      this.imgs = imgs;
+      this.boxes = imgs.map(img => 
+        [img,
+        img.getBoundingClientRect()]
+      );  
+    },
+    /**
+     * 
+     * @param {object} coords
+     * @param {number} coords.x
+     * @param {number} coords.y
+     * @returns {undefined | HTMLImageElement}
+     */
+    within([x,y]) {
+      return (boxes.find(([img, box]) =>  x > box.left && x < box.right && y > box.top && y < box.bottom) || [])[0];
+    }
+  };
 
   const options = {
     root: null,
@@ -51,6 +70,7 @@ function initialize() {
     delay: 100
   };
   
+
   const observer = new IntersectionObserver((entries, observer) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -70,6 +90,10 @@ function initialize() {
           analytics.track('imageHide', {
             path: window.location.pathname,
             image: entry.target.src,
+            width: entry.target.width,
+            height: entry.target.height,
+            screen_width: screen.availWidth,
+            screen_height: screen.availHeight
           });
         }
       }
@@ -115,6 +139,8 @@ function keepTracking() {
   });
     
   images = [...document.images];
+  imageLocations.images = images;
+
   // also update visible images array
   visibleImages.forEach(image => {
     if (!images.includes(image)) {
@@ -138,6 +164,10 @@ trackKeeper.start();
 
 
 onIdle((activeTime) => {
+  analytics.track('idle', {
+    path: window.location.pathname,
+    activeTime: activeTime
+  });
   trackKeeper.stop();
 }, opts);
 
@@ -174,10 +204,8 @@ window.fetch = function () {
 
 document.addEventListener('click', event => {
   const clickedElement = event.target;
-  const [linkedImage] = [...document.images].filter(image => {
-    const parentLink = image.closest('a');
-    return parentLink && parentLink.href.includes(image.src);
-  });
+  const linkedImage = imageLocations.within([event.pageX, event.pageY]);
+  
   if (linkedImage && clickedElement.tagName === 'A') {
     analytics.track('imageLinkClick', {
       image: linkedImage.src,
