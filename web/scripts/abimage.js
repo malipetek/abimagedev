@@ -987,7 +987,7 @@ window.fetch = function () {
 
 document.addEventListener('click', event => {
   const clickedElement = event.target;
-  const linkedImage = imageLocations.within([event.pageX, event.pageY]);
+  const linkedImage = imageLocations.within([event.screenX, event.screenY]);
   
   if (linkedImage && clickedElement.tagName === 'A') {
     analytics.track('imageLinkClick', {
