@@ -118,7 +118,7 @@ app.post('/track', async (req, res) => {
   
     try {
       if (event === 'imageView' || event === 'imageHide') {
-        const result = await directus.items('events').createOne({
+        await directus.items('events').createOne({
           shop: req.headers.origin.split('//').pop(),
           date: (new Date(date)).toISOString(),
           event_type: event,
@@ -127,7 +127,6 @@ app.post('/track', async (req, res) => {
           event_payload: properties,
           path,
         })
-        console.log('create result ', result)
       }
   
       else if (event == 'imageViewTick') {
@@ -150,6 +149,7 @@ app.post('/track', async (req, res) => {
           date: (new Date(date)).toISOString(),
           event_type: event,
           session,
+          image_identifier: getImageIdentifier(properties.image),
           event_payload: properties,
           path: path || properties.path,
         });
