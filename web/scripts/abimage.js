@@ -826,6 +826,25 @@ function initialize() {
    * @type {HTMLImageElement[]}
    */
   const images = [...document.images];
+  const imageLocations = {
+    set images(imgs) {
+      this.imgs = imgs;
+      this.boxes = imgs.map(img => 
+        [img,
+        img.getBoundingClientRect()]
+      );  
+    },
+    /**
+     * 
+     * @param {object} coords
+     * @param {number} coords.x
+     * @param {number} coords.y
+     * @returns {undefined | HTMLImageElement}
+     */
+    within([x,y]) {
+      return (boxes.find(([img, box]) =>  x > box.left && x < box.right && y > box.top && y < box.bottom) || [])[0];
+    }
+  };
 
   const options = {
     root: null,
@@ -873,12 +892,13 @@ function initialize() {
   return {
     observer,
     images,
+    imageLocations,
     visibleImages
   };
 }
 
 // initialize on page load
-let { observer, images, visibleImages } = initialize();
+let { observer, images, visibleImages, imageLocations } = initialize();
 
 function keepTracking() {
   let int;
@@ -904,6 +924,7 @@ function keepTracking() {
   });
     
   images = [...document.images];
+  // TODO: check if arrays are different
   imageLocations.images = images;
 
   // also update visible images array

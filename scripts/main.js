@@ -108,12 +108,13 @@ function initialize() {
   return {
     observer,
     images,
+    imageLocations,
     visibleImages
   };
 }
 
 // initialize on page load
-let { observer, images, visibleImages } = initialize();
+let { observer, images, visibleImages, imageLocations } = initialize();
 
 function keepTracking() {
   let int;
@@ -139,6 +140,7 @@ function keepTracking() {
   });
     
   images = [...document.images];
+  // TODO: check if arrays are different
   imageLocations.images = images;
 
   // also update visible images array
