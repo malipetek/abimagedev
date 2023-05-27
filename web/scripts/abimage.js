@@ -835,14 +835,11 @@ function initialize() {
       );  
     },
     /**
-     * 
-     * @param {object} coords
-     * @param {number} coords.x
-     * @param {number} coords.y
+     * @param {[number, number]} coords
      * @returns {undefined | HTMLImageElement}
      */
     within([x,y]) {
-      return (boxes.find(([img, box]) =>  x > box.left && x < box.right && y > box.top && y < box.bottom) || [])[0];
+      return (this.boxes.find(([img, box]) =>  x > box.left && x < box.right && y > box.top && y < box.bottom) || [])[0];
     }
   };
 
