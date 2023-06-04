@@ -7,9 +7,14 @@ export default {
   plugins: [
     cjs(),
     nodeResolve(),
-    // terser()
+    terser({
+      compress: {
+        passes: 3
+      }
+    })
   ],
-	output: {
+  treeshake: "smallest",
+  output: {
 		file: '../web/scripts/abimage.js',
 		format: 'cjs'
 	}

@@ -16,6 +16,10 @@
   font-family: sans-serif;
 }
 
+.SortableItem img {
+  width: 120px;
+}
+
 .DragHandle {
   display: flex;
   width: 12px;

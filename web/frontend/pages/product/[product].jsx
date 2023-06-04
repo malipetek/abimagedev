@@ -1,6 +1,9 @@
 import React, { useEffect, useState, Fragment, useCallback, useRef } from "react";
 import {
-  LegacyCard, Page, Text, Checkbox,
+  LegacyCard,
+  Page,
+  Text,
+  Checkbox,
   HorizontalGrid,
   VerticalStack,
   AlphaCard,
@@ -9,6 +12,7 @@ import {
   SkeletonDisplayText,
   Bleed,
   Divider,
+  DropZone
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { useNavigate } from "react-router-dom";
@@ -136,6 +140,10 @@ export default function PageName() {
           <AlphaCard roundedAbove="sm">
             <VerticalStack gap="4">
               <div className="DropZone">
+                {/* Candidate images */}
+                <Text as="h2" variant="headingMd">
+                  Product Images
+                </Text>
                 <SortableList
                   items={productImgs}
                   onChange={setProductImgs}
@@ -158,6 +166,10 @@ export default function PageName() {
                   )}
                 />
               </div>
+              {/* Candidate images */}
+              <Text as="h2" variant="headingMd">
+                Candidate Images
+              </Text>
               <div className={`DropZone ${
                 candidateImgs.length > 0 ? '' : 'empty'
               }`}>

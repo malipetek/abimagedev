@@ -14,7 +14,7 @@ import GDPRWebhookHandlers from "./gdpr.js";
 import WebHooks from "./webhooks.js";
 import { getImageIdentifier } from "./utils.js";
 import lz from 'lz-string';
-const { decompressFromBase64 } = lz;
+const { decompressFromBase64, compressToUint8Array } = lz;
 const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT, 10);
 
 const STATIC_PATH =
@@ -25,12 +25,13 @@ const STATIC_PATH =
 const app = express();
 
 // debug
-app.all('*', (req, res, next) => {
-  console.log('request url: ', req.url);
-  console.log('request body: ', req.body);
-  console.log('request method: ', req.method);
-  next();
-});
+// Get all of the resources in the application
+// app.all('*', (req, res, next) => {
+//   console.log('request url: ', req.url);
+//   console.log('request body: ', req.body);
+//   console.log('request method: ', req.method);
+//   next();
+// });
 app.use('/scripts', express.static(join(process.cwd(), 'scripts')));
 
 // Set up Shopify authentication and webhook handling
@@ -102,28 +103,30 @@ app.options('/track', (req, res) => {
 
 app.post('/track', async (req, res) => {
   console.log('track request body: ', req.body);
+  const shop = (req.headers.origin || '').split('//').pop();
   try {
     const payload = JSON.parse(decompressFromBase64(req.body));
     if (Array.isArray(payload)) {
       await Promise.all(payload.map(saveEvent));
     } else {
-      await saveEvent(payload);
+      await saveEvent(payload, shop);
     }
   } catch (err) {
     console.log('Error while decompressing or parsing', err);
   }
 
-  async function saveEvent(payload) {
+  async function saveEvent(payload, shop) {
     const { date, event, properties, session, path } = payload;
   
     try {
       if (event === 'imageView' || event === 'imageHide') {
+        // TODO: generic event and this one is identical actually
         await directus.items('events').createOne({
-          shop: req.headers.origin.split('//').pop(),
+          shop,
           date: (new Date(date)).toISOString(),
           event_type: event,
           session,
-          image_identifier: getImageIdentifier(properties.image),
+          image_identifier: getImageIdentifier(shop, properties.image),
           event_payload: properties,
           path,
         })
@@ -132,11 +135,11 @@ app.post('/track', async (req, res) => {
       else if (event == 'imageViewTick') {
         await Promise.all((Array.isArray(properties.images) ? properties.images : []).map((image) => {
           return directus.items('events').createOne({
-            shop: req.headers.origin.split('//').pop(),
+            shop,
             date: (new Date(date)).toISOString(),
             event_type: event,
             session,
-            image_identifier: getImageIdentifier(image),
+            image_identifier: getImageIdentifier(shop, image),
             path,
             event_payload: properties,
           });
@@ -145,11 +148,11 @@ app.post('/track', async (req, res) => {
 
       else {
         await directus.items('events').createOne({
-          shop: req.headers.origin.split('//').pop(),
+          shop,
           date: (new Date(date)).toISOString(),
           event_type: event,
           session,
-          image_identifier: getImageIdentifier(properties.image),
+          image_identifier: getImageIdentifier(shop, properties.image),
           event_payload: properties,
           path: path || properties.path,
         });
@@ -236,10 +239,10 @@ app.get('/api/script-status', async (req, res) => {
   return res.send({ config });
 });
 
-app.post('/api/session', async (req, res) => {
+app.get('/api/user', async (req, res) => {
 
   const sessionId = await shopify.api.session.getCurrentId({
-    isOnline: shopify.config.useOnlineTokens,
+    isOnline: true,
     rawRequest: req,
     rawResponse: res,
   });
@@ -249,25 +252,16 @@ app.post('/api/session', async (req, res) => {
     res.status(401).send({ error: 'Unauthorized' });
     return;
   }
-  const session = await shopify.config.sessionStorage.loadSession(sessionId);
+  
+  // @ts-ignore
+  const user = await shopify.config.sessionStorage.getOnlineAccessInfo(sessionId);
 
-  if (!session) {
-    res.status(401).send({ error: 'Unauthorized' });
+  if(!user) {
+    res.status(401).send({ error: 'No session found' });
     return;
   }
 
-  try {
-    const response = await shopify.api.clients.graphqlProxy({
-      session,
-      rawBody: req.body,
-    });
-  
-    res.send(response.body);
-  }
-  catch (e) {
-    console.log('error', e);
-    res.status(500).send({ error: e.message });
-  }
+  res.send(user);
 });
 
 app.get("/test", async (_req, res) => { 

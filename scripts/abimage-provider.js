@@ -2,7 +2,7 @@ import { compressToBase64 } from 'lz-string';
 import Queue from './Queue.js';
 const queue = new Queue('abimage_analytics_queue');
 
-const customAnalyticsEndpoint = 'https://abimagedev-production.up.railway.app/track'
+const customAnalyticsEndpoint = 'https://dev.abimage.app/track'
 
 export default function AbimageProvider() {
   // return object for analytics to use

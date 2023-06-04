@@ -16,4 +16,13 @@ export class DirectusAttachedStorage extends PostgreSQLSessionStorage {
       return false;
     } 
   }
+
+  async getOnlineAccessInfo(sessionId) {
+    const item = await directus.items('shopify_sessions').readOne(sessionId)
+    if (item) {
+        return item?.onlineAccessInfo?.associated_user;
+    } else {
+        return null;
+    }
+  }
 }

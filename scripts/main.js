@@ -1,15 +1,16 @@
-import Analytics from 'analytics';
+import Analytics from './analytics';
 import { v4 as uuid } from 'uuid';
 import abimageProvider from './abimage-provider';
 import onRouteChange from '@analytics/router-utils';
 import { onIdle, onWakeUp } from '@analytics/activity-utils';
-const FIVE_MINUTES = 300e3;
-const ONE_MINUTES = 60e3;
-const TEN_SECONDS = 10e3;
 const ONE_SECOND = 1e3;
+const TEN_SECONDS = 10e3;
+const ONE_MINUTES = 60e3;
+const FIVE_MINUTES = 300e3;
+
 const IMAGE_TICK_INTERVAL = ONE_SECOND; 
 
-const analytics = Analytics({
+const analytics = new Analytics({
   app: 'abimage',
   version: '1.0.5',
   plugins: [
@@ -185,6 +186,8 @@ window.addEventListener('popstate', () => {
   observer = res.observer;
   images = res.images;
   visibleImages = res.visibleImages;
+  imageLocations = res.imageLocations;
+
 });
 
 // detech add to cart by detecting fetch requests to /cart/add or navigation to /cart/add
