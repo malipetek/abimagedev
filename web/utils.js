@@ -1,19 +1,19 @@
 import crypto from 'crypto';
 /**
- * @param {string} shopId
+ * @param {string} myshopifyUrl
  * @param {string} uri
  * @returns {string|null}
  */
-export function getImageIdentifier(shopId, uri) {
+export function getImageIdentifier(myshopifyUrl, uri) {
     let image_identifier = null;
-    if (!shopId || uri) {
+    if (!myshopifyUrl || !uri) {
         return null;
     }
     try {
         const u = new URL(uri);
         // replace _100x100_crop_center stuff
         image_identifier = u.pathname.replace(/_\d+x\d+(?:_[a-z0-9_-]+)*\./i, '.');
-        image_identifier = crypto.createHash('shake128').update(`${shopId}${image_identifier}`).digest('hex');
+        image_identifier = crypto.createHash('shake128').update(`${myshopifyUrl}${image_identifier}`).digest('hex');
     } catch (e) {
         // ignore
     }
